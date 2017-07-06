@@ -1,0 +1,342 @@
+<link rel="import" href="../polymer/polymer-element.html">
+<link rel="import" href="../polymer/lib/elements/dom-repeat.html">
+<link rel="import" href="../iron-ajax/iron-ajax.html">
+<link rel="import" href="../vaadin-grid/vaadin-grid.html">
+<link rel="import" href="../vaadin-grid/vaadin-grid-selection-column.html">
+<link rel="import" href="../vaadin-grid/vaadin-grid-sorter.html">
+<link rel="import" href="../vaadin-grid/vaadin-grid-filter.html">
+<link rel="import" href="../vaadin-grid/vaadin-grid-column-group.html">
+
+<dom-module id="rc-grid">
+  <template is="dom-bind">
+    <custom-style>
+      <style is="custom-style">
+        vaadin-grid {
+          height: auto;
+        }
+
+        vaadin-grid#grid {
+          position: relative;
+          font: 300 16px/1.55 "Open Sans", sans-serif;
+          -webkit-font-smoothing: antialiased;
+          --divider-color: #d4d4d4;
+
+          --vaadin-grid-cell: {
+            padding: 0 18px;
+            height: 38px;
+            border-right: 1px solid #d4d4d4;
+            box-sizing: border-box;
+          };
+
+          --vaadin-grid-header-cell: {
+            border-bottom: 1px solid #d4d4d4;
+            background-image: linear-gradient(to bottom,#fafafa 2%, #efefef 98%);
+          };
+
+          --vaadin-grid-footer-cell: {
+            background-image: linear-gradient(to bottom,#fafafa 2%, #efefef 98%);
+          };
+
+          --vaadin-grid-cell-last-frozen: {
+            box-shadow: 1px 0 2px rgba(0, 0, 0, 0.1);
+          };
+
+          --vaadin-grid-body-row-active-cell: {
+            background-image: linear-gradient(to bottom,#1b87e3 2%, #166ed5 98%);
+            color: #c8dbed;
+            text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.05);
+            border-right-color: #1d69b4;
+          };
+
+          --vaadin-grid-body-row-odd-cell: {
+            background-color: #f5f5f5;
+          };
+
+          --vaadin-grid-loading-spinner: {
+            display: none;
+          };
+
+          --vaadin-grid-body-cell: {
+            transition: opacity 0.2s;
+          };
+
+          --vaadin-grid-loading-body-cell: {
+            opacity: 0.2;
+          };
+
+        }
+
+        vaadin-grid#grid vaadin-grid-sorter {
+          align-items: center;
+
+          --vaadin-grid-sorter-arrow: {
+            content: "";
+            padding: 0;
+            border: 6px solid transparent;
+            border-bottom-color: #000;
+          };
+
+          --vaadin-grid-sorter-order: {
+            display: none;
+          };
+        }
+
+        vaadin-grid#grid vaadin-grid-filter {
+          position: absolute;
+          left: 0;
+          right: 0;
+          top: 0;
+          bottom: 0px;
+          padding: 5px;
+        }
+
+        vaadin-grid#grid .grouptitle {
+          text-align: center;
+          font-weight: bold;
+        }
+
+        vaadin-grid#grid input {
+          width: 100%;
+          box-sizing: border-box;
+        }
+
+        @keyframes loading-expand {
+          0% {
+            transform: scaleX(0);
+          },
+        100% {
+          transform: scaleX(1);
+        }
+        }
+
+        vaadin-grid#grid::before {
+          content: "";
+          width: 100%;
+          position: absolute;
+          height: 4px;
+          background: var(--primary-color);
+          z-index: 1;
+          opacity: 0.5;
+          transform-origin: left;
+          opacity: 0;
+          transition: opacity 0.2s;
+        }
+
+        vaadin-grid#grid[loading]::before {
+          opacity: 1;
+          animation: loading-expand 1s linear;
+        }
+
+
+        #pages {
+          display: flex;
+          flex-wrap: wrap;
+          margin: 20px;
+        }
+
+        #pages > button {
+          user-select: none;
+          padding: 5px;
+          margin: 0 5px;
+          border-radius: 100%;
+          border: 0;
+          background: transparent;
+          font: inherit;
+          outline: none;
+          cursor: pointer;
+        }
+
+        #pages > button:hover,
+        #pages > button:focus {
+          color: var(--default-primary-color);
+          background-color: #eee;
+        }
+
+        #pages > button[selected] {
+          font-weight: bold;
+          color: white;
+          background-color: var(--default-primary-color);
+        }
+        input[readonly] {
+          border: 2px solid transparent;
+        }
+
+        input {
+          font: inherit;
+        }
+      </style>
+    </custom-style>
+
+    <iron-ajax auto url="[[ajaxSource]]" handle-as="json" last-response="{{data}}"></iron-ajax>
+
+    <slot>[[test]]</slot>
+
+    <vaadin-grid id="grid" items="{{data.result}}" page-size="[[pageSize]]" flex-grow="0">
+      <vaadin-grid-column-group>
+          <template class="header">
+            <div class="header-content">
+
+
+            </div>
+          </template>
+
+
+          <template is="dom-repeat" items="{{fields}}" as="header">
+            <vaadin-grid-column resizable>
+
+                <template class="header">
+                  <vaadin-grid-sorter path="[[getColumnSorter(header.field)]]">[[header.caption]]</vaadin-grid-sorter>
+                </template>
+                <template>[[getFieldValue(item,header.field)]]</template>
+            </vaadin-grid-column>
+          </template>
+      </vaadin-grid-column-group>
+
+    </vaadin-grid>
+
+    <div id="pages">
+      <button on-click="_prev">&lt;</button>
+      <template is="dom-repeat" items="[[pages]]">
+        <button on-click="_select" selected$="[[_isSelected(page, item)]]">[[item]]</button>
+      </template>
+      <button on-click="_next">&gt;</button>
+    </div>
+  </template>
+
+  <script>
+
+    class RcGrid extends Polymer.Element {
+        static get is() { return 'rc-grid'; }
+
+        static get properties() {
+            return {
+                datas :Array,
+                page: Number,
+                pages :  Array,
+                ajaxSource : String,
+                pageSize : Number,
+                fields : Array
+            }
+        }
+
+
+        static get observers() {
+            return [
+                '_itemsChanged(data, page)'
+            ]
+        }
+
+
+
+
+        _isSelected(page, item) {
+            return page === item - 1;
+        }
+
+        _select(e) {
+            this.page = e.model.item - 1;
+        }
+
+        _next() {
+            this.page = Math.min(this.pages.length - 1, this.page + 1);
+        }
+
+        _prev() {
+            this.page = Math.max(0, this.page - 1);
+        }
+
+        _itemsChanged(data, page) {
+
+            if (data === undefined || page === undefined ) {
+                return;
+            }
+
+            var rows = data.result; //this may vary depending on source json
+
+            if (!this.pages) {
+                this.pages = Array.apply( null, {length: Math.ceil(rows.length / this.$.grid.pageSize)} ).map(function(item, index) {
+                    return index + 1;
+                });
+                //console.log(this.pages);
+            }
+
+
+            var posStart = this.page * this.$.grid.pageSize;
+            var posEnd = (this.page + 1) * this.$.grid.pageSize;
+
+            this.$.grid.items = rows.slice(posStart, posEnd);
+
+        }
+
+        constructor(){
+          super();
+          this.page = 0;
+
+        }
+
+        ready(){
+            super.ready();
+            //alert(this.fieldnames[0]);
+        }
+
+
+        getColumnSorter(fields){ //this function returns the field or object property which will be goin to use for sorting
+            if(fields.indexOf('+') >= 0){ //check if it multiple fields, we need to evaluate it first
+                var f = fields.split('+');
+                return f[0].trim();
+            }else{ //if not return the parameter
+              return fields;
+            }
+        }
+
+
+
+        getFieldValue(item,field){
+            //check if field has '+'
+            var value = '';
+            if(field.indexOf('+') >= 0){ //this means there is multiple fields that needs to be evaluated
+                var fields = field.split('+');
+                var curField = ''; //current field holder as string
+                if(item == undefined) return;
+                //console.log(item);
+
+                for ( var x in fields ) {
+                    curField = fields[x].trim();//make sure fields has no spaces on both sides
+
+                    //console.log((curField in item));
+
+                    if( (curField in item) ){
+                        for ( var i in item ) {
+                            if(i == curField){
+                                //console.log(item[i]);
+                                value += item[i];
+                            }
+                        }
+                    }else{
+                        //value += curField.replace(/{|}/g,''); //g means all occurence of character
+                        value += curField.replace('{','').replace('}',''); //i've use string paramater so that the first occurrence only will be replace
+                    }
+                }
+
+                return value.trim();
+            }else{
+
+                if(item ==  undefined ) return;
+
+                for ( var i in item ) { //loop to all properties of json object
+                    if(i == field){ //if the specified field exist on the json object, return the object property value
+                        //console.log(item[i]);
+                        return item[i];
+                    }
+                }
+            }
+
+
+        }
+
+
+    }
+
+    window.customElements.define(RcGrid.is, RcGrid);
+  </script>
+</dom-module>
