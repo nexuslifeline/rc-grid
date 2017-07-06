@@ -167,7 +167,7 @@
       </style>
     </custom-style>
 
-    <iron-ajax auto url="[[ajaxSource]]" handle-as="json" last-response="{{data}}"></iron-ajax>
+    <iron-ajax auto url="[[ajaxSource]]" handle-as="json" params="[[params]]" method="[[method]]" last-response="{{data}}"></iron-ajax>
 
     <slot>[[test]]</slot>
 
@@ -215,7 +215,12 @@
                 pages :  Array,
                 ajaxSource : String,
                 pageSize : Number,
-                fields : Array
+                fields : Array,
+                params : Object,
+                method : {
+                    type : String,
+                    value : "GET"
+                }
             }
         }
 
