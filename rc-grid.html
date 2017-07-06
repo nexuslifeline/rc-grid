@@ -173,17 +173,8 @@
 
     <vaadin-grid id="grid" items="{{data.result}}" page-size="[[pageSize]]" flex-grow="0">
       <vaadin-grid-column-group>
-          <template class="header">
-            <div class="header-content">
-
-
-            </div>
-          </template>
-
-
           <template is="dom-repeat" items="{{fields}}" as="header">
             <vaadin-grid-column resizable>
-
                 <template class="header">
                   <vaadin-grid-sorter path="[[getColumnSorter(header.field)]]">[[header.caption]]</vaadin-grid-sorter>
                 </template>
@@ -201,6 +192,7 @@
       </template>
       <button on-click="_next">&gt;</button>
     </div>
+
   </template>
 
   <script>
