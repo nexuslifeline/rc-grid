@@ -4,7 +4,7 @@
   "main": "rc-grid.html",
   "dependencies": {
     "polymer": "Polymer/polymer#^2.0.0",
-    "vaadin-grid": "vaadin/vaadin-grid@v3.0.0-alpha2"
+    "vaadin-grid": "vaadin/vaadin-grid#v3.0.0-alpha2"
   },
   "devDependencies": {
     "webcomponentsjs": "webcomponents/webcomponentsjs#^1.0.0"
