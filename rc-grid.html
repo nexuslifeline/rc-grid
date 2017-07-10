@@ -223,7 +223,10 @@
                      * */
                     pages :  Array,
                     ajaxSource : String,
-                    pageSize : Number,
+                    pageSize : {
+                        type : Number,
+                        value : 10
+                    },
                     fields : Array,
                     params : Object,
                     method : {
@@ -407,12 +410,27 @@
                     for ( var i in item ) { //loop to all properties of json object
                         if(i == field){ //if the specified field exist on the json object, return the object property value
                             //console.log(item[i]);
-                            return item[i];
+                            if(typeof item[i] == 'object'){
+                                return this.getInnerObjectValue(item[i]);
+                            }else{
+                                return item[i];
+                            }
                         }
                     }
                 }
+            }
 
 
+            getInnerObjectValue(obj){
+                var str = '';
+                for(var x in obj){
+                    if(typeof obj[x] == 'object'){
+                        str += this.getInnerObjectValue(obj[x]);
+                    }else{
+                        str += obj[x] + '/';
+                    }
+                }
+                return str;
             }
 
 
